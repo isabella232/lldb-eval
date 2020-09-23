@@ -21,7 +21,7 @@ COPTS = select({
         "/external:I external/llvm_project_local/include",
     ],
     "//conditions:default": [
-        "-std=c++14",
+        "-std=c++17",
         "-fno-exceptions",
         "-fno-rtti",
     ],
@@ -86,6 +86,30 @@ cc_binary(
         ":lldb-eval",
         ":runner",
         "@bazel_tools//tools/cpp/runfiles",
+    ],
+)
+
+cc_library(
+    name = "lldb-eval-fuzzer",
+    srcs = [
+        "src/fuzzer/ast.cc",
+        "src/fuzzer/expr_gen.cc",
+    ],
+    hdrs = [
+        "src/fuzzer/ast.h",
+        "src/fuzzer/ast_visitor.h",
+        "src/fuzzer/expr_gen.h",
+    ],
+    copts = COPTS,
+)
+
+cc_binary(
+    name = "fuzzer_runner",
+    srcs = ["src/fuzzer/main.cc"],
+    copts = COPTS,
+    deps = [
+        ":lldb-eval-fuzzer",
+        "@llvm_project_local//:lldb-api",
     ],
 )
 
