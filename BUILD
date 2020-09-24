@@ -89,30 +89,6 @@ cc_binary(
     ],
 )
 
-cc_library(
-    name = "lldb-eval-fuzzer",
-    srcs = [
-        "src/fuzzer/ast.cc",
-        "src/fuzzer/expr_gen.cc",
-    ],
-    hdrs = [
-        "src/fuzzer/ast.h",
-        "src/fuzzer/ast_visitor.h",
-        "src/fuzzer/expr_gen.h",
-    ],
-    copts = COPTS,
-)
-
-cc_binary(
-    name = "fuzzer_runner",
-    srcs = ["src/fuzzer/main.cc"],
-    copts = COPTS,
-    deps = [
-        ":lldb-eval-fuzzer",
-        "@llvm_project_local//:lldb-api",
-    ],
-)
-
 cc_test(
     name = "parser_test",
     srcs = ["src/parser_test.cc"],
