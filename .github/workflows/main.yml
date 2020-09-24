@@ -1,0 +1,26 @@
+name: Build & Test
+
+# Trigger for pushes and pull requests for all branches.
+on: [push, pull_request]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-18.04
+
+    env:
+      LLVM_INSTALL_PATH: /usr/lib/llvm-10
+  
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Setup LLVM deps
+        run: sudo apt install -y lld-10 clang-10 lldb-10 llvm-10-dev libclang-10-dev liblldb-10-dev
+      
+      - name: Setup Bazel
+        uses: abhinavsingh/setup-bazel@v3
+
+      - name: Build
+        run: bazel build :all
+      
+      - name: Test
+        run: bazel test --test_output=errors :all
