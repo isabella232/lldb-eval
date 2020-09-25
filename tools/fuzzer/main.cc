@@ -32,8 +32,6 @@
 #include <string>
 #include <utility>
 
-#include <libgen.h>
-
 using bazel::tools::cpp::runfiles::Runfiles;
 
 constexpr char VAR[] = "x";
@@ -55,21 +53,16 @@ int main(int argc, char** argv) {
 #ifndef _WIN32
   std::string lldb_server = runfiles->Rlocation(LLDB_SERVER_KEY);
   setenv("LLDB_DEBUGSERVER_PATH", lldb_server.c_str(), 0);
-#endif  // !_WIN32
+#endif // !_WIN32
 
   std::string exe_path = runfiles->Rlocation(EXECUTABLE_PATH_KEY);
   std::string dirname_buf = exe_path;
-  std::string basename_buf = exe_path;
-
-  // `dirname()` and `basename()` need not be reentrant, hence the copying
-  std::string exe_dir = dirname(&dirname_buf[0]);
-  std::string exe_name = basename(&basename_buf[0]);
 
   std::random_device rd;
   auto seed = rd();
   printf("Seed for this run is: %u\n", seed);
 
-  const char* ARGV[] = { exe_name.c_str(), nullptr };
+  const char* ARGV[] = { exe_path.c_str(), nullptr };
 
   lldb::SBDebugger::Initialize();
   {
@@ -77,8 +70,10 @@ int main(int argc, char** argv) {
     debugger.SetAsync(false);
 
     auto target = debugger.CreateTarget(exe_path.c_str());
-    auto bp = target.BreakpointCreateByName("break_here", exe_name.c_str());
-    auto proc = target.LaunchSimple(ARGV, nullptr, exe_dir.c_str());
+    auto bp = target.BreakpointCreateByName("break_here", exe_path.c_str());
+    // Test program does not perform any I/O, so current directory doesn't
+    // matter.
+    auto proc = target.LaunchSimple(ARGV, nullptr, ".");
     auto thread = proc.GetSelectedThread();
 
     auto frame = thread.SetSelectedFrame(1);
