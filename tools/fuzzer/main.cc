@@ -24,6 +24,8 @@
 #include "lldb/API/SBThread.h"
 #include "lldb/API/SBValue.h"
 
+#include "tools/cpp/runfiles/runfiles.h"
+
 #include <cstdint>
 #include <cstdio>
 #include <random>
@@ -32,21 +34,32 @@
 
 #include <libgen.h>
 
+using bazel::tools::cpp::runfiles::Runfiles;
+
 constexpr char VAR[] = "x";
-constexpr char TARGET_TRIPLE[] = "x86_64-linux-gnu";
+
+constexpr char LLDB_SERVER_KEY[] = "llvm_project_local/bin/lldb-server";
+constexpr char EXECUTABLE_PATH_KEY[] = "lldb_eval/testdata/fuzzer_binary";
 
 int main(int argc, char** argv) {
-  if (argc < 2) {
-    fprintf(stderr, "Usage: %s executable-path\n", argv[0]);
+  // No need to use argc when running via Bazel
+  (void) argc;
+
+  std::string error;
+  std::unique_ptr<Runfiles> runfiles(Runfiles::Create(argv[0], &error));
+  if (runfiles == nullptr) {
+    fprintf(stderr, "Could not launch the fuzzer: %s\n", error.c_str());
     return 1;
   }
 
-  if (*argv[1] == '\0') {
-    fprintf(stderr, "Empty string passed for the executable path\n");
-    return 1;
-  }
+#ifndef _WIN32
+  std::string lldb_server = runfiles->Rlocation(LLDB_SERVER_KEY);
+  printf("%s\n", lldb_server.c_str());
+  setenv("LLDB_DEBUGSERVER_PATH", lldb_server.c_str(), 0);
+#endif  // !_WIN32
 
-  const auto* exe_path = argv[1];
+  std::string exe_path = runfiles->Rlocation(EXECUTABLE_PATH_KEY);
+  printf("%s\n", exe_path.c_str());
   std::string dirname_buf = exe_path;
   std::string basename_buf = exe_path;
 
@@ -65,8 +78,7 @@ int main(int argc, char** argv) {
     auto debugger = lldb::SBDebugger::Create();
     debugger.SetAsync(false);
 
-    auto target = debugger.CreateTargetWithFileAndTargetTriple(exe_path,
-                                                               TARGET_TRIPLE);
+    auto target = debugger.CreateTarget(exe_path.c_str());
     auto bp = target.BreakpointCreateByName("break_here", exe_name.c_str());
     auto proc = target.LaunchSimple(ARGV, nullptr, exe_dir.c_str());
     auto thread = proc.GetSelectedThread();
