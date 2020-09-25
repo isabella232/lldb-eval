@@ -45,6 +45,7 @@ cc_binary(
     copts = COPTS,
     deps = [
         "//tools:fuzzer_lib",
+        "//:lldb-eval",
         "@bazel_tools//tools/cpp/runfiles",
         "@llvm_project_local//:lldb-api",
     ],

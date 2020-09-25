@@ -6,7 +6,7 @@ https://docs.bazel.build/versions/master/windows.html#build-c-with-msvc.
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 
 package(
-    default_visibility = ["//visibility:private"],
+    default_visibility = ["//visibility:public"],
 )
 
 licenses(["notice"])

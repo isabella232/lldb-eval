@@ -17,8 +17,12 @@
 #include "ast.h"
 #include "expr_gen.h"
 
+#include "src/api.h"
+
 #include "lldb/API/SBBreakpoint.h"
 #include "lldb/API/SBDebugger.h"
+#include "lldb/API/SBError.h"
+#include "lldb/API/SBExecutionContext.h"
 #include "lldb/API/SBProcess.h"
 #include "lldb/API/SBTarget.h"
 #include "lldb/API/SBThread.h"
@@ -26,6 +30,7 @@
 
 #include "tools/cpp/runfiles/runfiles.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <random>
@@ -81,12 +86,24 @@ int main(int argc, char** argv) {
     printf("Value of variable `%s` is: %s\n", VAR, var_value.GetValue());
 
     eval_fuzzer::ExprGenerator gen(seed);
+    std::vector<std::string> exprs;
+
+    size_t padding = 0;
     for (int i = 0; i < 20; i++) {
       auto gen_expr = gen.generate();
-      auto str = stringify_expr(gen_expr);
+      auto str = eval_fuzzer::stringify_expr(gen_expr);
 
-      auto expr_value = frame.EvaluateExpression(str.c_str());
-      printf("Evaluation of expression `%s` yields: %s\n", str.c_str(), expr_value.GetValue());
+      padding = std::max(padding, str.size());
+      exprs.emplace_back(std::move(str));
+    }
+    for (const auto& e: exprs) {
+      auto lldb_value = frame.EvaluateExpression(e.c_str());
+      printf("lldb:      `%-*s` yields: `%s`\n", (int) padding, e.c_str(), lldb_value.GetValue());
+
+      lldb::SBError lldb_error;
+      auto lldb_eval_value = lldb_eval::EvaluateExpression(frame, e.c_str(), lldb_error);
+      printf("lldb-eval: `%-*s` yields: `%s`\n", (int) padding, e.c_str(), lldb_eval_value.GetValue());
+      printf("------------------------------------------------------------\n");
     }
     thread.Resume();
   }
