@@ -226,11 +226,25 @@ class ExprPrinter final: public DefaultVisitor {
 
     m_os << UN_OP_TABLE[(size_t) e.op()];
 
-    bool gen_inner_parens = std::holds_alternative<BinaryExpr>(e.expr());
-    if (gen_inner_parens) {
+    const auto* inner_as_binary = std::get_if<BinaryExpr>(&e.expr());
+    const auto* inner_as_unary = std::get_if<UnaryExpr>(&e.expr());
+    if (inner_as_binary != nullptr) {
+      // Case 1: Inner expression is a binary expression: Just be conservative
+      // and emit parentheses
       m_os << "(";
-      visit(e.expr());
+      visit(*inner_as_binary);
       m_os << ")";
+
+    } else if (inner_as_unary != nullptr) {
+      // Case 2: Avoiding emitting cases such as `++3` or `--3`
+      bool needs_space = (e.op() == UnOp::Plus || e.op() == UnOp::Neg)
+          && e.op() == inner_as_unary->op()
+          && !inner_as_unary->gen_parens();
+
+      if (needs_space) {
+        m_os << ' ';
+      }
+      visit(*inner_as_unary);
     } else {
       visit(e.expr());
     }

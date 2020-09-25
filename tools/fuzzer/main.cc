@@ -54,12 +54,10 @@ int main(int argc, char** argv) {
 
 #ifndef _WIN32
   std::string lldb_server = runfiles->Rlocation(LLDB_SERVER_KEY);
-  printf("%s\n", lldb_server.c_str());
   setenv("LLDB_DEBUGSERVER_PATH", lldb_server.c_str(), 0);
 #endif  // !_WIN32
 
   std::string exe_path = runfiles->Rlocation(EXECUTABLE_PATH_KEY);
-  printf("%s\n", exe_path.c_str());
   std::string dirname_buf = exe_path;
   std::string basename_buf = exe_path;
 
